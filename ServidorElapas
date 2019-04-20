@@ -1,0 +1,87 @@
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.sql.*;
+
+public class ServidorElapas {
+    
+    public static void main(String[] args) throws SQLException, IOException, ClassNotFoundException {
+        int port = 5001; // puerto en el que escuchara el socket
+        String Respuesta="";
+        String url="jdbc:postgresql://localhost:5432/ELAPAS";
+        String usuario="postgres";
+        String contraseña="estefany"; 
+        try    {
+            
+            ServerSocket server = new ServerSocket(port); //instanciamos un servidor socket
+            System.out.println("El servidor esta listo\n");
+            Socket client;
+            BufferedReader fromClient;  // buffer de lectura
+            PrintStream toClient;       // stream para escritura
+            while (true) {   // ciclo al infinito para elfuncionamiento del server
+                try{
+                Class.forName("org.postgresql.Driver");
+                Connection conexion=DriverManager.getConnection(url,usuario,contraseña);
+                java.sql.Statement st = conexion.createStatement();
+                String sql ="Select NumFactura, Num_Cliente, Monto FROM facturas";
+                ResultSet result = st.executeQuery(sql);
+                
+                client = server.accept(); // aceptala conexion
+                fromClient = new BufferedReader(new InputStreamReader(client.getInputStream())); // el lector
+                String cadena;
+                cadena = fromClient.readLine(); //cadena obtenida desde el lector
+                toClient = new PrintStream(client.getOutputStream()); //prepara el objetopara devolver
+                System.out.println("Comando Recibido"+cadena);
+                if (cadena.substring(3, 4).equals("-")) {
+                    String  comando = cadena.substring(0, 3);
+                    
+                    if (comando.equals("fac")) {
+                        String idcliente  = cadena.substring(4);
+                        if (idcliente=="1")
+                        {
+                            while(result.next()){
+                        String idfac=result.getString("id_factura");
+                        String monto=result.getString("monto");
+                            
+                            Respuesta=idfac+" "+monto;
+                        }
+                        }
+                        if (idcliente=="2")
+                        {
+                            while(result.next()){
+                            String idfac=result.getString("id_factura");
+                            String monto=result.getString("monto");
+                            
+                            Respuesta=idfac+" "+monto;
+                        }
+                        }
+                    if (comando.equals("pag")) {
+                         
+                            result.updateString("estado","pago");
+                            Respuesta="pago";
+                      
+                                    }               
+                    
+                    toClient.flush();
+                    toClient.println(Respuesta);
+                    }else {
+                    toClient.flush();
+                    toClient.println("No se reconoce el comando");
+                }
+                }
+
+        } catch(IOException e ){
+            System.out.println(e.getMessage());
+    }
+                
+            }        
+        }catch(IOException e ){
+            System.out.println(e.getMessage());
+    }
+    }
+}
+                  
